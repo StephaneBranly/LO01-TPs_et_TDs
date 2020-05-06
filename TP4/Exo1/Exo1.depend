@@ -1,0 +1,11 @@
+# depslib dependency file v1.0
+1587573060 source:c:\users\stéphane\documents\ecole\utc\tc04\lo01\tp4\exo1\main.c
+	<stdio.h>
+	"fonctions.h"
+
+1587581739 source:c:\users\stéphane\documents\ecole\utc\tc04\lo01\tp4\exo1\fonctions.c
+	<stdio.h>
+	"fonctions.h"
+
+1587573113 c:\users\stéphane\documents\ecole\utc\tc04\lo01\tp4\exo1\fonctions.h
+
