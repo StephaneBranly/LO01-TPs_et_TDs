@@ -6,8 +6,18 @@
 #include "fonctions.h"
 
 
+float* mallocTab(int size, float * current)
+{
+    if(current!=NULL && current!=0) // On libère l'espace de l'ancien tableau avant de changer le pointeur
+        free(current);
+    float* tab;
+    tab = (float*)malloc(size*sizeof(float)); // Allocation dynamique de la bonne taille
 
-void askName(char* name) // on demande une valeur
+    return tab;
+}
+
+
+void askName(char* name) // on demande le nom
 {
     int result;
     do
@@ -30,7 +40,7 @@ int askValue() // on demande une valeur
     return value;
 }
 
-void askSlot(trace** p, trace* t)
+void askSlot(trace** p, trace* t) // On demande de sélectionner un slot
 {
     int result, value=0;
     do
@@ -38,30 +48,25 @@ void askSlot(trace** p, trace* t)
         printf("\n> ");
         result=scanf("%d",&value); // On récupère result qui permet de controler qu'on a bien entrer le bon type
         fflush(stdin); // On vide le buffer
-    }while(result==0 || value>10 || value<1);
+    }while(result==0 || value>NBSLOTS || value<1); // Vérification slot correct
     *p = &t[value-1];
 }
 
-int simuTrace(float tmax, float dt, param* p, trace* trace)
+int simuTrace(float tmax, float dt, param* p, trace* trace) //  Algorithme issu de l'énoncé
 {
-    if(p!=NULL && trace!=NULL)
+    if(p!=NULL && trace!=NULL) // Vérification pointeur trace non nul
     {
         int i=0, nb=trace->nbpts;
-        printf("\n\nnb=%d ; name=%s",nb,trace->comment);
 
-        if(trace->time!=NULL)
-                free(&trace->time);
-        if(trace->value!=NULL)
-            free(&trace->value);
+        trace->time = mallocTab(nb,trace->time);
+        trace->value = mallocTab(nb,trace->value);
 
-        trace->time = (float*)malloc(nb*sizeof(float));
-        trace->value = (float*)malloc(nb*sizeof(float));
+        float v=0,w=0, dv=0, dw=0, t=0, a=p->a, b=p->b, e=p->e, l=p->l,s=p->s;
 
-        float v=0,w=0, dv=0, dw=0, t=0;
-        while (t<tmax)
+        while(t<tmax)
         {
-            dv=((p->a-v)*(v-1)*v)-w;
-            dw=(p->e)*(((p->b)*v)-(p->l*w)-(p->s));
+            dv=((a-v)*(v-1)*v)-w;
+            dw=e*((b*v)-(l*w)-s);
             v+=dv*dt;
             w+=dw*dt;
             trace->time[i]=t;
@@ -75,9 +80,9 @@ int simuTrace(float tmax, float dt, param* p, trace* trace)
 }
 
 
-int printTrace(trace* t)
+int printTrace(trace* t) // Boucle pour afficher chaque point de la trace
 {
-    if(t!=NULL)
+    if(t!=NULL) // Vérification pointeur trace non nul
     {
         int i=0;
         printf("\n### Affichage de la trace ###\n");
@@ -89,7 +94,7 @@ int printTrace(trace* t)
     return -1;
 }
 
-void expeTrace(trace* maTrace)
+void expeTrace(trace* maTrace) // Fonction donnée dans l'énoncé
 {
     if(maTrace!=NULL)
     {
@@ -99,8 +104,8 @@ void expeTrace(trace* maTrace)
 
         strcpy(maTrace->comment, "expectedTrace");
         maTrace->nbpts = nVal;
-        maTrace->time = malloc(nVal*sizeof(float));
-        maTrace->value = malloc(nVal*sizeof(float));
+        maTrace->time = mallocTab(nVal,maTrace->time);
+        maTrace->value = mallocTab(nVal,maTrace->value);
         int i=0;
         for(i=0; i<=nVal; i++)
         {
@@ -110,15 +115,15 @@ void expeTrace(trace* maTrace)
     }
 }
 
-float errorTrace(trace* t1, trace* t2)
+float errorTrace(trace* t1, trace* t2) // Calcul de l'erreur avec 2 traces fournies par pointeur
 {
-    if(t1!=NULL && t2!=NULL)
+    if(t1!=NULL && t2!=NULL) // Vérification pointeurs non nuls
     {
-        if(t1->nbpts==t2->nbpts)
+        if(t1->nbpts==t2->nbpts) // Vérification traces de même taille
         {
             float sum=0, result;
             int i;
-            for(i=0;i<t1->nbpts;i++)
+            for(i=0;i<t1->nbpts;i++) // Calcul de la somme au carré
                  sum+=(float)pow(t1->value[i]-t2->value[i],2);
             result=(float)sqrt(sum/t1->nbpts);
             return result;
@@ -133,19 +138,17 @@ int saveTraceBin(char* fileTrace, trace* t)
     if(fileTrace!=NULL && t!=NULL)
     {
         FILE *fp;
-        // open file for writing
+
         fp = fopen (fileTrace, "w");
         if (fp == NULL)
             return -1;
 
-        // write struct to file
-        int size=t->nbpts;
-        fwrite(&size, sizeof(int), 1, fp);
         fwrite(t, sizeof(trace), 1, fp);
-        fwrite(t->time, sizeof(t->time), 1, fp);
-        fwrite(t->value, sizeof(t->value), 1, fp);
 
-        // close file
+
+        fwrite(t->time, sizeof(float), t->nbpts, fp);
+        fwrite(t->value, sizeof(float), t->nbpts, fp);
+
         fclose (fp);
 
         return 0;
@@ -159,26 +162,23 @@ int readTraceBin(char* fileTrace, trace* t)
     {
         FILE *fp;
 
-        // Open person.dat for reading
         fp = fopen (fileTrace, "r");
         if (fp == NULL)
             return -1;
 
-        // read file contents till end of file
+        float* oldValue=t->value;
+        float* oldTime=t->time;
+
         int size;
-        fread(&size, sizeof(int), 1, fp);
-        if(t->time!=NULL)
-            free(&t->time);
-        if(t->value!=NULL)
-            free(&t->value);
         fread(t, sizeof(trace), 1, fp);
-        t->time = malloc(size*sizeof(float));
-        t->value = malloc(size*sizeof(float));
+        size=t->nbpts;
 
-        fread(t->time, size*sizeof(float), 1, fp);
-        fread(t->value, size*sizeof(float), 1, fp);
+        t->time = mallocTab(size,oldTime);
+        t->value = mallocTab(size,oldValue);
 
-        // close file
+        fread(t->time, sizeof(float), size, fp);
+        fread(t->value, sizeof(float), size, fp);
+
         fclose (fp);
 
         return 0;
@@ -216,12 +216,12 @@ int readTraceTxt(char* fileTrace, trace* t)
         {
             fscanf(fp,"%s",t->comment);
             fscanf(fp,"%d",&t->nbpts);
-            if(t->time!=NULL)
-                free(&t->time);
-            if(t->value!=NULL)
-                free(&t->value);
-            t->time = malloc(t->nbpts*sizeof(float));
-            t->value = malloc(t->nbpts*sizeof(float));
+
+            int size=t->nbpts;
+
+            t->time = mallocTab(size,t->time);
+            t->value = mallocTab(size,t->value);
+
             for (i=0;i<t->nbpts;i++)
                 fscanf(fp,"%f%f",&t->time[i],&t->value[i]);
             fclose(fp);

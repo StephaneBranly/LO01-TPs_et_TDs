@@ -4,21 +4,24 @@
 
 #define MAXC 40
 #define MAXSIZE 4096
+#define NBSLOTS 3
 
 
-typedef struct
+typedef struct // Structure de paramètre
 {
     float a,b,l,s,e;
 } param;
 
 
-typedef struct
+typedef struct // Structure d'une trace
 {
     char comment[MAXC];
     int nbpts;
-    float *time;
-    float *value;
+    float* time;
+    float* value;
 } trace;
+
+float* mallocTab(int, float *);
 
 void askName(char*);
 int askValue();

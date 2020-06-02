@@ -7,29 +7,30 @@
 
 int main()
 {
-    param p1 = {.a=0.5, .b=0.5, .l=1.0, .s=0.05, .e=0.01};
-    param p2 = {.a=0.1, .b=0.75, .l=1.0, .s=0.05, .e=0.3};
+    param p1 = {.a=0.1, .b=0.5, .l=1.0, .s=0.05, .e=0.01}; // Parametres p1
+    param p2 = {.a=0.1, .b=0.75, .l=1.0, .s=0.05, .e=0.3}; // Parametres p2
 
 
-    float dt=0.5, tmax;
+    float dt=0.5, tmax, error;
 
     int action=1, sousaction=1, i, nb;
 
-    trace traces[10];
-    for(i=0;i<10;i++)
-    {
-        traces[i].nbpts=-1;
-        traces[i].value=NULL;
-        traces[i].time=NULL;
-        strcpy(traces[i].comment, " - ");
-    }
-    strcpy(traces[0].comment, " 1 ");
-    strcpy(traces[1].comment, " 2 ");
+    trace traces[NBSLOTS];
     trace* pointer = NULL;
     trace* pointer2 = NULL;
+
+    for(i=0;i<NBSLOTS;i++) // Initialisation des traces situées dans les différents slots
+    {
+        pointer=&traces[i];
+        pointer->nbpts=-1;
+        pointer->value=NULL;
+        pointer->time=NULL;
+        strcpy(pointer->comment, " - ");
+    }
+
     char name[MAXC];
 
-	printf("\nLa trace esperee a ete correctement chargee");
+	printf("\n#### Vous disposez de %d slots (de 1 a %d) pour sauvegarder vos traces ####",NBSLOTS,NBSLOTS);
 
     while(action)
     {
@@ -43,7 +44,7 @@ int main()
 
         action=askValue();
 
-        switch(action)
+        switch(action) // Switch case pour sélectionner le bon menu
         {
             case 1:
                 printf("\n\nVoulez-vous creer une trace avec les parametres 1(1), 2(2) ou trace expected(3) ?");
@@ -58,16 +59,12 @@ int main()
                     askName(pointer->comment);
                     printf("\nIndiquez le nombre de points de la trace");
                     pointer->nbpts=askValue();
-                    printf("\n\nH1");
                     nb=pointer->nbpts;
-                    printf("\n\nH2");
-                    tmax=(float)((nb*dt)+1);
-                    printf("\n\nH3 ; tmax=%f, nbpts=%d",tmax,nb);
+                    tmax=(float)((nb)*dt);
                     if(sousaction==1)
                         simuTrace(tmax,dt,&p1,pointer);
                     else if(sousaction==2)
                         simuTrace(tmax,dt,&p2,pointer);
-                        printf("\n\nH4");
                 }
                 break;
             case 2:
@@ -120,12 +117,16 @@ int main()
                 askSlot(&pointer, traces);
                 printf("\n\nIndiquez le slot de la trace 2 :");
                 askSlot(&pointer2, traces);
-                printf("\n%f",errorTrace(pointer,pointer2));
+                error=errorTrace(pointer,pointer2);
+                if(error==-1)
+                    printf("\nL'erreur n'a pas ete calculee, il semblerait que les 2 traces n'aient pas le meme nombre de points...");
+                else
+                    printf("\nL'erreur est de %f",error);
                 break;
         }
     }
 
-    for(i=0;i<10;i++)
+    for(i=0;i<NBSLOTS;i++) // Libération de l'espace alloué dynamiquement avant de quitter le programme
     {
         if(traces[i].value!=NULL)
             free(&traces[i].value);
